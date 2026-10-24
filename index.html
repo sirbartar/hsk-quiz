@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HSK 4.0">
+<title>HSK 4.0 Vocabulary Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f172a; --card: #1e293b; --card-hover: #334155; --primary: #38bdf8;
+    --success: #22c55e; --error: #ef4444; --warning: #f59e0b; --text: #f8fafc; --text-dim: #94a3b8;
+    --safe-top: env(safe-area-inset-top);
+    --safe-bottom: env(safe-area-inset-bottom);
+    --safe-left: env(safe-area-inset-left);
+    --safe-right: env(safe-area-inset-right);
+  }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: calc(20px + var(--safe-top)) calc(20px + var(--safe-right)) calc(20px + var(--safe-bottom)) calc(20px + var(--safe-left));
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  #app {
+    width: 100%;
+    max-width: 600px;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .screen {
+    display: none;
+    animation: fadeIn 0.4s ease-out;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .screen.active {
+    display: flex;
+    flex-direction: column;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .title-screen {
+    text-align: center;
+    padding: 40px 0;
+    justify-content: center;
+  }
+  .title-screen h1 {
+    font-size: clamp(2rem, 6vw, 2.5rem);
+    margin-bottom: 10px;
+    background: linear-gradient(90deg, var(--primary), #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .title-screen p {
+    color: var(--text-dim);
+    margin-bottom: 40px;
+    font-size: 1.1rem;
+  }
+  .btn {
+    background: var(--card);
+    color: var(--text);
+    border: 2px solid transparent;
+    padding: 16px 30px;
+    font-size: 1rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    margin-bottom: 15px;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .btn:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+  .btn:hover {
+    background: var(--card-hover);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: var(--bg);
+    font-weight: bold;
+    text-align: center;
+    justify-content: center;
+  }
+  .btn-primary:hover {
+    background: #7dd3fc;
+    border-color: transparent;
+  }
+  .btn-primary:active {
+    background: #0ea5e9;
+  }
+  .btn-small {
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    width: auto;
+    display: inline-block;
+    margin: 0;
+  }
+  .menu-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+  }
+  .menu-btn {
+    background: var(--card);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .menu-btn:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+  }
+  .menu-btn:hover {
+    border-color: var(--primary);
+    transform: scale(1.03);
+  }
+  .menu-btn h3 {
+    font-size: 1rem;
+    margin-bottom: 5px;
+  }
+  .menu-btn span {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  .quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .timer-container {
+    text-align: center;
+  }
+  .timer {
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary);
+    transition: color 0.3s;
+  }
+  .timer.warning { color: var(--warning); }
+  .timer.danger { color: var(--error); animation: pulse 1s infinite; }
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
+
+  .card-container {
+    perspective: 1000px;
+    width: 100%;
+    height: clamp(200px, 35vh, 280px);
+    margin-bottom: 20px;
+    flex-shrink: 0;
+  }
+  .card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-style: preserve-3d;
+  }
+  .card-inner.flipped {
+    transform: rotateY(180deg);
+  }
+  .card-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    background: var(--card);
+    border-radius: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 3px solid transparent;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .card-face.correct {
+    border-color: var(--success);
+    box-shadow: 0 0 25px rgba(34, 197, 94, 0.4);
+  }
+  .card-face.wrong {
+    border-color: var(--error);
+    box-shadow: 0 0 25px rgba(239, 68, 68, 0.4);
+  }
+  .card-back {
+    transform: rotateY(180deg);
+    background: var(--card-hover);
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px;
+  }
+
+  .hanzi {
+    font-family: 'Ma Shan Zheng', 'STXingkai', 'KaiTi', '楷体', 'PingFang SC', cursive;
+    font-size: clamp(3.5rem, 12vw, 6rem);
+    line-height: 1;
+    transition: all 0.2s ease;
+  }
+  .hanzi.exam-font {
+    font-family: 'PingFang SC', 'Microsoft YaHei', 'SimHei', 'Noto Sans SC', sans-serif;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+  }
+
+  .card-meaning { text-align: center; }
+  .pinyin {
+    font-size: clamp(1.2rem, 4vw, 1.8rem);
+    color: var(--primary);
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+  .english {
+    font-size: clamp(1rem, 3.5vw, 1.4rem);
+    color: var(--text);
+  }
+
+  .toggles {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  .toggle-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 24px;
+  }
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #475569;
+    transition: .3s;
+    border-radius: 24px;
+  }
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  input:checked + .slider {
+    background-color: var(--primary);
+  }
+  input:checked + .slider:before {
+    transform: translateX(22px);
+  }
+
+  .options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .option-btn {
+    background: var(--card);
+    border: 2px solid #334155;
+    color: var(--text);
+    padding: 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: clamp(0.85rem, 3vw, 1rem);
+    text-align: center;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    word-wrap: break-word;
+  }
+  .option-btn:hover:not(:disabled) {
+    border-color: var(--primary);
+    background: var(--card-hover);
+  }
+  .option-btn:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  .option-btn.correct {
+    border-color: var(--success);
+    background: rgba(34, 197, 94, 0.2);
+    color: var(--success);
+    font-weight: bold;
+  }
+  .option-btn.wrong {
+    border-color: var(--error);
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--error);
+    font-weight: bold;
+  }
+  .option-btn:disabled {
+    cursor: default;
+    opacity: 0.85;
+  }
+
+  .result-screen {
+    text-align: center;
+    padding: 20px 0;
+  }
+  .result-screen h2 {
+    font-size: clamp(1.5rem, 5vw, 2rem);
+    margin-bottom: 10px;
+  }
+  .score-circle {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: var(--card);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 15px auto;
+    border: 4px solid var(--primary);
+  }
+  .score-circle .num {
+    font-size: 2.2rem;
+    font-weight: bold;
+    color: var(--primary);
+  }
+  .score-circle .label {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  .leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  .leaderboard-table th, .leaderboard-table td {
+    padding: 8px 6px;
+    text-align: left;
+    border-bottom: 1px solid var(--card-hover);
+  }
+  .leaderboard-table th {
+    color: var(--text-dim);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .leaderboard-table td {
+    font-size: 0.85rem;
+  }
+  .rank-1 { color: #fbbf24; font-weight: bold; }
+  .rank-2 { color: #94a3b8; font-weight: bold; }
+  .rank-3 { color: #b45309; font-weight: bold; }
+
+  .name-input {
+    padding: 14px 16px;
+    font-size: 16px; /* Prevents iOS zoom on focus */
+    border-radius: 8px;
+    border: 2px solid var(--card-hover);
+    background: var(--card);
+    color: var(--text);
+    width: 100%;
+    max-width: 300px;
+    margin-bottom: 20px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .name-input:focus {
+    border-color: var(--primary);
+  }
+  .name-input::placeholder {
+    color: var(--text-dim);
+  }
+
+  /* iPhone-specific fixes */
+  @supports (-webkit-touch-callout: none) {
+    body {
+      min-height: -webkit-fill-available;
+    }
+  }
+
+  @supports (padding: max(0px)) {
+    .quiz-header {
+      padding-left: max(0px, var(--safe-left));
+      padding-right: max(0px, var(--safe-right));
+    }
+  }
+
+  /* Landscape adjustments for smaller iPhones */
+  @media (max-height: 500px) and (orientation: landscape) {
+    .card-container {
+      height: 180px;
+      margin-bottom: 10px;
+    }
+    .hanzi {
+      font-size: 3rem;
+    }
+    .toggles {
+      margin-bottom: 10px;
+    }
+    .options {
+      gap: 8px;
+    }
+    .option-btn {
+      padding: 10px;
+    }
+  }
+
+  /* Small iPhone (SE, 5s, etc.) */
+  @media (max-width: 360px) {
+    .menu-grid {
+      gap: 10px;
+    }
+    .menu-btn {
+      padding: 15px;
+    }
+    .menu-btn h3 {
+      font-size: 0.9rem;
+    }
+    .btn {
+      padding: 14px 20px;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="title-screen" class="screen active title-screen">
+    <h1>HSK 4.0 Quiz</h1>
+    <p>Master the new 1,000 words!</p>
+    <button class="btn btn-primary" onclick="showScreen('menu-screen')">Start Studying</button>
+  </div>
+
+  <div id="menu-screen" class="screen">
+    <h2 style="text-align:center; margin-bottom: 10px;">Select a Category</h2>
+    <p style="text-align:center; color:var(--text-dim); margin-bottom: 20px;">Choose a topic to test your knowledge</p>
+    <div class="menu-grid" id="menu-grid"></div>
+  </div>
+
+  <div id="name-screen" class="screen" style="text-align: center; padding-top: 15vh; justify-content: flex-start;">
+    <h2 style="font-size: 1.8rem; margin-bottom: 10px;">Enter Your Name</h2>
+    <p style="color: var(--text-dim); margin-bottom: 20px;">This name will be used on the leaderboard.</p>
+    <input type="text" id="player-name-input" class="name-input" placeholder="Your Name" maxlength="20" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+    <button class="btn btn-primary" onclick="confirmNameAndStart()" style="max-width: 300px; margin: 0 auto 15px;">Start Quiz</button>
+    <button class="btn" onclick="showScreen('menu-screen')" style="max-width: 300px; margin: 0 auto;">Back to Menu</button>
+  </div>
+
+  <div id="quiz-screen" class="screen">
+    <div class="quiz-header">
+      <button class="btn btn-small" onclick="quitQuiz()">← Menu</button>
+      <div class="timer-container">
+        <div class="timer" id="timer">10:00</div>
+        <div id="progress-display" style="font-size: 0.85rem; margin-top: 4px;">Q: 1 / 10</div>
+      </div>
+      <div style="text-align: right;">
+        <div id="score-display" style="font-weight: bold; color: var(--primary); font-size: 1rem;">Score: 0</div>
+        <button class="btn btn-small" onclick="togglePause()" style="margin-top: 6px;">⏸ Pause</button>
+      </div>
+    </div>
+    <div class="card-container">
+      <div class="card-inner" id="card-inner">
+        <div class="card-face card-front" id="card-front"><div class="hanzi" id="q-hanzi">安排</div></div>
+        <div class="card-face card-back">
+          <div class="card-meaning">
+            <div class="pinyin" id="q-pinyin">ānpái</div>
+            <div class="english" id="q-english">to arrange</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="toggles">
+      <div class="toggle-group"><span>Pinyin</span><label class="switch"><input type="checkbox" id="toggle-pinyin" checked onchange="toggleHint('pinyin')"><span class="slider"></span></label></div>
+      <div class="toggle-group"><span>English</span><label class="switch"><input type="checkbox" id="toggle-english" checked onchange="toggleHint('english')"><span class="slider"></span></label></div>
+      <div class="toggle-group"><span>Exam Font</span><label class="switch"><input type="checkbox" id="toggle-exam-font" onchange="toggleExamFont()"><span class="slider"></span></label></div>
+    </div>
+    <div class="options" id="options-container"></div>
+  </div>
+
+  <div id="pause-screen" class="screen" style="text-align: center; padding-top: 15vh; justify-content: flex-start;">
+    <h2 style="font-size: 2rem; margin-bottom: 10px;">Paused</h2>
+    <p style="color: var(--text-dim); margin-bottom: 40px; font-size: 1.1rem;">Take a breather!</p>
+    <button class="btn btn-primary" onclick="togglePause()" style="max-width: 300px; margin: 0 auto 15px;">Resume Quiz</button>
+    <button class="btn" onclick="quitQuiz()" style="max-width: 300px; margin: 0 auto;">Back to Menu</button>
+  </div>
+
+  <div id="result-screen" class="screen result-screen">
+    <h2>Quiz Complete!</h2>
+    <div class="score-circle">
+      <div class="num" id="final-score">0</div>
+      <div class="label">Correct</div>
+    </div>
+    <div id="review-stats" style="margin-bottom: 25px; font-size: 1rem;"></div>
+
+    <div id="leaderboard" style="margin: 20px auto; text-align: left; background: var(--card); padding: 15px; border-radius: 12px; max-width: 450px;">
+      <h3 style="text-align: center; margin-bottom: 15px; color: var(--primary); font-size: 1.1rem;">Local Leaderboard</h3>
+      <div id="leaderboard-list"></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="startQuiz(currentCategory)" style="max-width: 400px; margin: 0 auto 15px;">Play Again</button>
+    <button class="btn" onclick="showScreen('menu-screen')" style="max-width: 400px; margin: 0 auto;">Back to Menu</button>
+  </div>
+</div>
+
+<script>
+  const quizData = {
+    cat1: { name: "Work & Education", words: [
+      {zh: "报名", py: "bàomíng", en: "to sign up, register"}, {zh: "报考", py: "bàokǎo", en: "to apply for an exam"}, {zh: "笔试", py: "bǐshì", en: "written test"}, {zh: "毕业", py: "bìyè", en: "to graduate"}, {zh: "毕业生", py: "bìyèshēng", en: "graduate"}, {zh: "本科", py: "běnkē", en: "undergraduate program"}, {zh: "硕士", py: "shuòshì", en: "master's degree"}, {zh: "博士", py: "bóshì", en: "PhD, doctor"}, {zh: "研究生", py: "yánjiūshēng", en: "graduate student"}, {zh: "学院", py: "xuéyuàn", en: "college, academy"}, {zh: "院长", py: "yuànzhǎng", en: "dean"}, {zh: "学费", py: "xuéfèi", en: "tuition fee"}, {zh: "奖学金", py: "jiǎngxuéjīn", en: "scholarship"}, {zh: "功课", py: "gōngkè", en: "schoolwork, homework"}, {zh: "预习", py: "yùxí", en: "to preview lessons"}, {zh: "自习", py: "zìxí", en: "self-study session"}, {zh: "自学", py: "zìxué", en: "to self-study"}, {zh: "教师", py: "jiàoshī", en: "teacher"}, {zh: "教授", py: "jiàoshòu", en: "professor"}, {zh: "教学", py: "jiàoxué", en: "teaching"}, {zh: "教育", py: "jiàoyù", en: "education"}, {zh: "教练", py: "jiàoliàn", en: "coach, trainer"}, {zh: "高考", py: "gāokǎo", en: "college entrance exam"}, {zh: "分数", py: "fēnshù", en: "score, grade"}, {zh: "专业", py: "zhuānyè", en: "major, specialty"}, {zh: "知识", py: "zhīshi", en: "knowledge"}, {zh: "语法", py: "yǔfǎ", en: "grammar"}, {zh: "词语", py: "cíyǔ", en: "word, phrase"}, {zh: "文字", py: "wénzì", en: "writing, characters"}, {zh: "作文", py: "zuòwén", en: "composition, essay"}, {zh: "经验", py: "jīngyàn", en: "experience"}, {zh: "经历", py: "jīnglì", en: "to experience; past experience"}, {zh: "水平", py: "shuǐpíng", en: "level, standard"}, {zh: "办公", py: "bàngōng", en: "to work, handle official business"}, {zh: "办理", py: "bànlǐ", en: "to handle, process"}, {zh: "办事", py: "bànshì", en: "to handle matters"}, {zh: "打工", py: "dǎgōng", en: "to work a temporary job"}, {zh: "干活儿", py: "gànhuór", en: "to work (manual labour)"}, {zh: "工人", py: "gōngrén", en: "worker"}, {zh: "工资", py: "gōngzī", en: "wage, salary"}, {zh: "加班", py: "jiābān", en: "to work overtime"}, {zh: "出差", py: "chūchāi", en: "to go on a business trip"}, {zh: "单位", py: "dānwèi", en: "work unit, employer"}, {zh: "部门", py: "bùmén", en: "department"}, {zh: "负责", py: "fùzé", en: "to be responsible"}, {zh: "负责人", py: "fùzérén", en: "person in charge"}, {zh: "责任", py: "zérèn", en: "responsibility, duty"}, {zh: "招聘", py: "zhāopìn", en: "to recruit, hire"}, {zh: "应聘", py: "yìngpìn", en: "to apply for a job"}, {zh: "职业", py: "zhíyè", en: "occupation, profession"}, {zh: "管理", py: "guǎnlǐ", en: "to manage"}, {zh: "当", py: "dāng", en: "to serve as, to be"}, {zh: "作为", py: "zuòwéi", en: "as; to act as"}, {zh: "面试", py: "miànshì", en: "interview"}, {zh: "简历", py: "jiǎnlì", en: "résumé, CV"}, {zh: "同事", py: "tóngshì", en: "colleague"}, {zh: "老板", py: "lǎobǎn", en: "boss, owner"}, {zh: "经理", py: "jīnglǐ", en: "manager, director"}, {zh: "顾客", py: "gùkè", en: "customer, client"}, {zh: "购买", py: "gòumǎi", en: "to purchase"}, {zh: "购物", py: "gòuwù", en: "to go shopping"}, {zh: "网购", py: "wǎnggòu", en: "to shop online"}, {zh: "价格", py: "jiàgé", en: "price"}, {zh: "价钱", py: "jiàqián", en: "price, cost"}, {zh: "打折", py: "dǎzhé", en: "to give a discount"}, {zh: "降价", py: "jiàngjià", en: "to cut prices"}, {zh: "费用", py: "fèiyong", en: "cost, expense"}, {zh: "费", py: "fèi", en: "fee; to spend"}, {zh: "付", py: "fù", en: "to pay"}, {zh: "支付", py: "zhīfù", en: "to pay (money)"}, {zh: "现金", py: "xiànjīn", en: "cash"}, {zh: "赚", py: "zhuàn", en: "to earn, make a profit"}, {zh: "奖", py: "jiǎng", en: "prize, award"}, {zh: "奖金", py: "jiǎngjīn", en: "bonus, prize money"}, {zh: "获奖", py: "huòjiǎng", en: "to win a prize"}, {zh: "经济", py: "jīngjì", en: "economy; economical"}, {zh: "广告", py: "guǎnggào", en: "advertisement"}, {zh: "厂", py: "chǎng", en: "factory, plant"}, {zh: "工厂", py: "gōngchǎng", en: "factory"}, {zh: "材料", py: "cáiliào", en: "material, data"}, {zh: "货", py: "huò", en: "goods, merchandise"}, {zh: "市场", py: "shìchǎng", en: "market"}, {zh: "消费", py: "xiāofèi", en: "to consume, spending"}, {zh: "服务", py: "fúwù", en: "service"}, {zh: "营业", py: "yíngyè", en: "to do business, be open"}
+    ]},
+    cat2: { name: "Daily Life & Home", words: [
+      {zh: "厨房", py: "chúfáng", en: "kitchen"}, {zh: "卧室", py: "wòshì", en: "bedroom"}, {zh: "客厅", py: "kètīng", en: "living room"}, {zh: "阳台", py: "yángtái", en: "balcony"}, {zh: "卫生间", py: "wèishēngjiān", en: "bathroom/restroom"}, {zh: "冰箱", py: "bīngxiāng", en: "refrigerator"}, {zh: "洗衣机", py: "xǐyījī", en: "washing machine"}, {zh: "空调", py: "kōngtiáo", en: "air conditioner"}, {zh: "微波炉", py: "wēibōlú", en: "microwave oven"}, {zh: "沙发", py: "shāfā", en: "sofa"}, {zh: "柜子", py: "guìzi", en: "cabinet, wardrobe"}, {zh: "抽屉", py: "chōuti", en: "drawer"}, {zh: "窗帘", py: "chuānglián", en: "curtain"}, {zh: "地毯", py: "dìtǎn", en: "carpet, rug"}, {zh: "镜子", py: "jìngzi", en: "mirror"}, {zh: "灯泡", py: "dēngpào", en: "light bulb"}, {zh: "开关", py: "kāiguān", en: "switch"}, {zh: "插头", py: "chātóu", en: "plug"}, {zh: "插座", py: "chāzuò", en: "socket, outlet"}, {zh: "楼梯", py: "lóutī", en: "stairs"}, {zh: "电梯", py: "diàntī", en: "elevator"}, {zh: "被子", py: "bèizi", en: "quilt, blanket"}, {zh: "枕头", py: "zhěntou", en: "pillow"}, {zh: "毛巾", py: "máojīn", en: "towel"}, {zh: "牙刷", py: "yáshuā", en: "toothbrush"}, {zh: "牙膏", py: "yágāo", en: "toothpaste"}, {zh: "洗发水", py: "xǐfàshuǐ", en: "shampoo"}, {zh: "沐浴露", py: "mùyùlù", en: "body wash/shower gel"}, {zh: "肥皂", py: "féizào", en: "soap"}, {zh: "扫帚", py: "sàozhou", en: "broom"}, {zh: "拖把", py: "tuōbǎ", en: "mop"}, {zh: "抹布", py: "mābù", en: "cleaning rag/cloth"}, {zh: "垃圾桶", py: "lājītǒng", en: "trash can"}, {zh: "塑料袋", py: "sùliàodài", en: "plastic bag"}, {zh: "剪刀", py: "jiǎndāo", en: "scissors"}, {zh: "胶带", py: "jiāodài", en: "tape"}, {zh: "电池", py: "diànchí", en: "battery"}, {zh: "外套", py: "wàitào", en: "coat, jacket"}, {zh: "衬衫", py: "chènshān", en: "shirt, blouse"}, {zh: "裤子", py: "kùzi", en: "pants, trousers"}, {zh: "裙子", py: "qúnzi", en: "skirt, dress"}, {zh: "袜子", py: "wàzi", en: "socks"}, {zh: "鞋子", py: "xiézi", en: "shoes"}, {zh: "帽子", py: "màozi", en: "hat, cap"}, {zh: "手套", py: "shǒutào", en: "gloves"}, {zh: "围巾", py: "wéijīn", en: "scarf"}, {zh: "领带", py: "lǐngdài", en: "necktie"}, {zh: "皮带", py: "pídài", en: "belt"}, {zh: "钱包", py: "qiánbāo", en: "wallet"}, {zh: "背包", py: "bēibāo", en: "backpack"}, {zh: "行李箱", py: "xínglixiāng", en: "suitcase, luggage"}, {zh: "睡衣", py: "shuìyī", en: "pajamas"}, {zh: "拖鞋", py: "tuōxié", en: "slippers"}, {zh: "运动鞋", py: "yùndòngxié", en: "sneakers, sports shoes"}, {zh: "皮鞋", py: "píxié", en: "leather shoes"}, {zh: "牛仔裤", py: "niúzǎikù", en: "jeans"}, {zh: "毛衣", py: "máoyī", en: "sweater"}, {zh: "羽绒服", py: "yǔróngfú", en: "down jacket"}, {zh: "早餐", py: "zǎocān", en: "breakfast"}, {zh: "午餐", py: "wǔcān", en: "lunch"}, {zh: "晚餐", py: "wǎncān", en: "dinner"}, {zh: "零食", py: "língshí", en: "snack"}, {zh: "饮料", py: "yǐnliào", en: "beverage, drink"}, {zh: "白酒", py: "báijiǔ", en: "liquor, spirit"}, {zh: "啤酒", py: "píjiǔ", en: "beer"}, {zh: "红酒", py: "hóngjiǔ", en: "red wine"}, {zh: "咖啡", py: "kāfēi", en: "coffee"}, {zh: "茶", py: "chá", en: "tea"}, {zh: "牛奶", py: "niúnǎi", en: "milk"}, {zh: "酸奶", py: "suānnǎi", en: "yogurt"}, {zh: "果汁", py: "guǒzhī", en: "fruit juice"}, {zh: "矿泉水", py: "kuàngquánshuǐ", en: "mineral water"}, {zh: "饼干", py: "bǐnggān", en: "biscuit, cracker"}, {zh: "面包", py: "miànbāo", en: "bread"}, {zh: "蛋糕", py: "dàngāo", en: "cake"}, {zh: "月饼", py: "yuèbǐng", en: "mooncake"}, {zh: "巧克力", py: "qiǎokèlì", en: "chocolate"}, {zh: "糖果", py: "tángguǒ", en: "candy, sweet"}, {zh: "鸡蛋", py: "jīdàn", en: "egg"}, {zh: "西红柿", py: "xīhóngshì", en: "tomato"}, {zh: "土豆", py: "tǔdòu", en: "potato"}, {zh: "黄瓜", py: "huángguā", en: "cucumber"}, {zh: "白菜", py: "báicài", en: "cabbage"}, {zh: "豆腐", py: "dòufu", en: "tofu"}, {zh: "盐", py: "yán", en: "salt"}, {zh: "糖", py: "táng", en: "sugar"}, {zh: "醋", py: "cù", en: "vinegar"}, {zh: "酱油", py: "jiàngyóu", en: "soy sauce"}, {zh: "安排", py: "ānpái", en: "to arrange"}, {zh: "打扫", py: "dǎsǎo", en: "to clean, sweep"}, {zh: "修理", py: "xiūlǐ", en: "to repair, fix"}, {zh: "快递", py: "kuàidì", en: "express delivery"}, {zh: "超市", py: "chāoshì", en: "supermarket"}, {zh: "商场", py: "shāngchǎng", en: "shopping mall"}, {zh: "菜市场", py: "càishìchǎng", en: "vegetable market"}, {zh: "理发店", py: "lǐfàdiàn", en: "barbershop, hair salon"}, {zh: "餐厅", py: "cāntīng", en: "restaurant, dining hall"}, {zh: "结账", py: "jiézhàng", en: "to pay the bill, check out"}, {zh: "房东", py: "fángdōng", en: "landlord"}, {zh: "房租", py: "fángzū", en: "rent"}, {zh: "红包", py: "hóngbāo", en: "red envelope, bonus"}, {zh: "密码", py: "mìmǎ", en: "password, PIN"}, {zh: "窗户", py: "chuānghu", en: "window"}, {zh: "钥匙", py: "yàoshi", en: "key"}, {zh: "纸巾", py: "zhǐjīn", en: "tissue, napkin"}, {zh: "袋子", py: "dàizi", en: "bag, sack"}, {zh: "厨师", py: "chúshī", en: "chef, cook"}, {zh: "家具", py: "jiājù", en: "furniture"}
+    ]},
+    cat3: { name: "Health & Emotions", words: [
+      {zh: "身体", py: "shēntǐ", en: "body, health"}, {zh: "心脏", py: "xīnzàng", en: "heart"}, {zh: "肺", py: "fèi", en: "lung"}, {zh: "胃", py: "wèi", en: "stomach"}, {zh: "眼睛", py: "yǎnjing", en: "eye"}, {zh: "耳朵", py: "ěrduo", en: "ear"}, {zh: "鼻子", py: "bízi", en: "nose"}, {zh: "嘴巴", py: "zuǐba", en: "mouth"}, {zh: "牙齿", py: "yáchǐ", en: "tooth"}, {zh: "舌头", py: "shétou", en: "tongue"}, {zh: "脖子", py: "bózi", en: "neck"}, {zh: "肩膀", py: "jiānbǎng", en: "shoulder"}, {zh: "胳膊", py: "gēbo", en: "arm"}, {zh: "手", py: "shǒu", en: "hand"}, {zh: "腿", py: "tuǐ", en: "leg"}, {zh: "脚", py: "jiǎo", en: "foot"}, {zh: "皮肤", py: "pífū", en: "skin"}, {zh: "头发", py: "tóufa", en: "hair"}, {zh: "医院", py: "yīyuàn", en: "hospital"}, {zh: "诊所", py: "zhěnsuǒ", en: "clinic"}, {zh: "医生", py: "yīshēng", en: "doctor"}, {zh: "护士", py: "hùshi", en: "nurse"}, {zh: "药", py: "yào", en: "medicine, drug"}, {zh: "生病", py: "shēngbìng", en: "to fall ill"}, {zh: "感冒", py: "gǎnmào", en: "cold, flu"}, {zh: "发烧", py: "fāshāo", en: "to have a fever"}, {zh: "咳嗽", py: "késou", en: "to cough"}, {zh: "头疼", py: "tóuténg", en: "headache"}, {zh: "肚子疼", py: "dùziteng", en: "stomachache"}, {zh: "体检", py: "tǐjiǎn", en: "physical examination"}, {zh: "血压", py: "xuèyā", en: "blood pressure"}, {zh: "减肥", py: "jiǎnféi", en: "to lose weight"}, {zh: "健身", py: "jiànshēn", en: "to work out, fitness"}, {zh: "运动", py: "yùndòng", en: "sport, exercise"}, {zh: "休息", py: "xiūxi", en: "to rest"}, {zh: "睡觉", py: "shuìjiào", en: "to sleep"}, {zh: "熬夜", py: "áoyè", en: "to stay up late"}, {zh: "习惯", py: "xíguàn", en: "habit"}, {zh: "健康", py: "jiànkāng", en: "health, healthy"}, {zh: "疲劳", py: "píláo", en: "fatigued, tired"}, {zh: "舒服", py: "shūfu", en: "comfortable"}, {zh: "疼", py: "téng", en: "to ache, painful"}, {zh: "痛", py: "tòng", en: "pain, hurt"}, {zh: "痒", py: "yǎng", en: "to itch, itchy"}, {zh: "过敏", py: "guòmǐn", en: "allergy, allergic"}, {zh: "传染", py: "chuánrǎn", en: "to infect, contagious"}, {zh: "治疗", py: "zhìliáo", en: "to treat, treatment"}, {zh: "手术", py: "shǒushù", en: "surgery, operation"}, {zh: "康复", py: "kāngfù", en: "to recover, rehabilitation"}, {zh: "保险", py: "bǎoxiǎn", en: "insurance"}, {zh: "挂号", py: "guàhào", en: "to register (at hospital)"}, {zh: "处方", py: "chǔfāng", en: "prescription"}, {zh: "打针", py: "dǎzhēn", en: "to get an injection"}, {zh: "吃药", py: "chīyào", en: "to take medicine"}, {zh: "体温", py: "tǐwēn", en: "body temperature"}, {zh: "体重", py: "tǐzhòng", en: "body weight"}, {zh: "爱情", py: "àiqíng", en: "love, romance"}, {zh: "感情", py: "gǎnqíng", en: "emotion, affection"}, {zh: "心情", py: "xīnqíng", en: "mood"}, {zh: "情绪", py: "qíngxù", en: "emotion, morale"}, {zh: "感觉", py: "gǎnjué", en: "feeling, sense"}, {zh: "感动", py: "gǎndòng", en: "moved, touched"}, {zh: "激动", py: "jīdòng", en: "excited, agitated"}, {zh: "紧张", py: "jǐnzhāng", en: "nervous, tense"}, {zh: "害怕", py: "hàipà", en: "afraid, scared"}, {zh: "担心", py: "dānxīn", en: "to worry"}, {zh: "着急", py: "zhāojí", en: "anxious, worried"}, {zh: "生气", py: "shēngqì", en: "angry, mad"}, {zh: "愤怒", py: "fènnù", en: "furious, anger"}, {zh: "伤心", py: "shāngxīn", en: "sad, grieved"}, {zh: "难过", py: "nánguò", en: "sad, upset"}, {zh: "失望", py: "shīwàng", en: "disappointed"}, {zh: "后悔", py: "hòuhuǐ", en: "to regret"}, {zh: "抱歉", py: "bàoqiàn", en: "sorry, apologetic"}, {zh: "害羞", py: "hàixiū", en: "shy, embarrassed"}, {zh: "骄傲", py: "jiāo'ào", en: "proud, arrogant"}, {zh: "自豪", py: "zìháo", en: "proud (of oneself)"}, {zh: "自信", py: "zìxìn", en: "confident"}, {zh: "勇敢", py: "yǒnggǎn", en: "brave, courageous"}, {zh: "坚强", py: "jiānqiáng", en: "strong, steadfast"}, {zh: "乐观", py: "lèguān", en: "optimistic"}, {zh: "悲观", py: "bēiguān", en: "pessimistic"}, {zh: "孤独", py: "gūdú", en: "lonely"}, {zh: "寂寞", py: "jìmò", en: "lonely, lonely"}, {zh: "无聊", py: "wúliáo", en: "bored, boring"}, {zh: "开心", py: "kāixīn", en: "happy, joyful"}, {zh: "快乐", py: "kuàilè", en: "happy, joyful"}, {zh: "高兴", py: "gāoxìng", en: "happy, glad"}, {zh: "幸福", py: "xìngfú", en: "happy, blessed"}, {zh: "满意", py: "mǎnyì", en: "satisfied"}, {zh: "羡慕", py: "xiànmù", en: "to envy, admire"}, {zh: "嫉妒", py: "jídù", en: "to be jealous"}, {zh: "讨厌", py: "tǎoyàn", en: "to hate, disgusting"}, {zh: "喜欢", py: "xǐhuan", en: "to like"}, {zh: "爱", py: "ài", en: "to love"}, {zh: "恨", py: "hèn", en: "to hate"}, {zh: "烦", py: "fán", en: "annoyed, bothered"}, {zh: "烦恼", py: "fánnǎo", en: "worried, distressed"}, {zh: "痛苦", py: "tòngkǔ", en: "painful, suffering"}, {zh: "享受", py: "xiǎngshòu", en: "to enjoy"}, {zh: "放松", py: "fàngsōng", en: "to relax"}, {zh: "轻松", py: "qīngsōng", en: "relaxed, light"}, {zh: "压力", py: "yālì", en: "pressure, stress"}, {zh: "焦虑", py: "jiāolǜ", en: "anxious"}, {zh: "抑郁", py: "yìyù", en: "depressed"}, {zh: "兴奋", py: "xīngfèn", en: "excited, thrilled"}, {zh: "期待", py: "qīdài", en: "to look forward to"}, {zh: "惊讶", py: "jīngyà", en: "surprised, amazed"}, {zh: "奇怪", py: "qíguài", en: "strange, weird"}, {zh: "怀疑", py: "huáiyí", en: "to doubt, suspect"}, {zh: "相信", py: "xiāngxìn", en: "to believe"}, {zh: "信任", py: "xìnrèn", en: "to trust"}, {zh: "犹豫", py: "yóuyù", en: "to hesitate"}, {zh: "决定", py: "juédìng", en: "to decide"}, {zh: "选择", py: "xuǎnzé", en: "to choose"}, {zh: "放弃", py: "fàngqì", en: "to give up"}, {zh: "坚持", py: "jiānchí", en: "to persist"}, {zh: "努力", py: "nǔlì", en: "to work hard"}, {zh: "奋斗", py: "fèndòu", en: "to struggle, strive"}, {zh: "成功", py: "chénggōng", en: "success, succeed"}, {zh: "失败", py: "shībài", en: "failure, fail"}, {zh: "胜利", py: "shènglì", en: "victory"}, {zh: "输", py: "shū", en: "to lose (a game)"}, {zh: "赢", py: "yíng", en: "to win"}, {zh: "谦虚", py: "qiānxū", en: "modest, humble"}, {zh: "礼貌", py: "lǐmào", en: "polite, manners"}, {zh: "粗鲁", py: "cūlǔ", en: "rude"}, {zh: "善良", py: "shànliáng", en: "kind, good"}, {zh: "诚实", py: "chéngshí", en: "honest"}, {zh: "虚伪", py: "xūwěi", en: "hypocritical, fake"}, {zh: "聪明", py: "cōngming", en: "smart, clever"}, {zh: "笨", py: "bèn", en: "stupid, foolish"}, {zh: "愚蠢", py: "yúchǔn", en: "foolish, silly"}, {zh: "智慧", py: "zhìhuì", en: "wisdom"}, {zh: "理智", py: "lǐzhì", en: "rational, reasonable"}, {zh: "冲动", py: "chōngdòng", en: "impulsive"}, {zh: "冷静", py: "lěngjìng", en: "calm, cool"}, {zh: "热情", py: "rèqíng", en: "enthusiastic, warm"}, {zh: "冷淡", py: "lěngdàn", en: "indifferent, cold"}, {zh: "活泼", py: "huópō", en: "lively, vivacious"}, {zh: "内向", py: "nèixiàng", en: "introverted"}, {zh: "外向", py: "wàixiàng", en: "extroverted"}, {zh: "开朗", py: "kāilǎng", en: "cheerful, optimistic"}, {zh: "郁闷", py: "yùmèn", en: "depressed, gloomy"}, {zh: "烦躁", py: "fánzào", en: "irritable, restless"}, {zh: "平静", py: "píngjìng", en: "calm, peaceful"}
+    ]},
+    cat4: { name: "Society & Culture", words: [
+      {zh: "标准", py: "biāozhǔn", en: "standard"}, {zh: "环保", py: "huánbǎo", en: "environmental protection"}, {zh: "国际", py: "guójì", en: "international"}, {zh: "国籍", py: "guójí", en: "nationality"}, {zh: "法律", py: "fǎlǜ", en: "law"}, {zh: "警察", py: "jǐngchá", en: "police"}, {zh: "交警", py: "jiāojǐng", en: "traffic police"}, {zh: "京剧", py: "jīngjù", en: "Beijing opera"}, {zh: "艺术", py: "yìshù", en: "art"}, {zh: "著名", py: "zhùmíng", en: "famous"}, {zh: "保护", py: "bǎohù", en: "to protect"}, {zh: "观众", py: "guānzhòng", en: "audience"}, {zh: "演员", py: "yǎnyuán", en: "actor"}, {zh: "参赛", py: "cānsài", en: "to participate in competition"}, {zh: "大赛", py: "dàsài", en: "major competition"}, {zh: "社区", py: "shèqū", en: "community"}, {zh: "农村", py: "nóngcūn", en: "rural area"}, {zh: "城市", py: "chéngshì", en: "city"}, {zh: "人口", py: "rénkǒu", en: "population"}, {zh: "资源", py: "zīyuán", en: "resources"}, {zh: "气候", py: "qìhòu", en: "climate"}, {zh: "自然", py: "zìrán", en: "nature"}, {zh: "污染", py: "wūrǎn", en: "pollution"}, {zh: "传统", py: "chuántǒng", en: "tradition"}, {zh: "风俗", py: "fēngsú", en: "custom"}, {zh: "节日", py: "jiérì", en: "festival"}, {zh: "庆祝", py: "qìngzhù", en: "to celebrate"}, {zh: "历史", py: "lìshǐ", en: "history"}, {zh: "文化", py: "wénhuà", en: "culture"}, {zh: "民族", py: "mínzú", en: "nationality/ethnic group"}, {zh: "博物馆", py: "bówùguǎn", en: "museum"}, {zh: "展览", py: "zhǎnlǎn", en: "exhibition"}, {zh: "导演", py: "dǎoyǎn", en: "director"}, {zh: "明星", py: "míngxīng", en: "celebrity/star"}, {zh: "流行", py: "liúxíng", en: "popular/trendy"}, {zh: "经典", py: "jīngdiǎn", en: "classic"}, {zh: "发展", py: "fāzhǎn", en: "to develop"}, {zh: "进步", py: "jìnbù", en: "progress"}, {zh: "政策", py: "zhèngcè", en: "policy"}, {zh: "制度", py: "zhìdù", en: "system"}, {zh: "权利", py: "quánlì", en: "right (privilege)"}, {zh: "义务", py: "yìwù", en: "duty/obligation"}, {zh: "平等", py: "píngděng", en: "equal"}, {zh: "自由", py: "zìyóu", en: "freedom"}, {zh: "和谐", py: "héxié", en: "harmonious"}, {zh: "稳定", py: "wěndìng", en: "stable"}, {zh: "繁荣", py: "fánróng", en: "prosperous"}, {zh: "文明", py: "wénmíng", en: "civilization/civilized"}, {zh: "尊重", py: "zūnzhòng", en: "to respect"}, {zh: "理解", py: "lǐjiě", en: "to understand"}, {zh: "包容", py: "bāoróng", en: "to tolerate/inclusive"}, {zh: "合作", py: "hézuò", en: "to cooperate"}, {zh: "竞争", py: "jìngzhēng", en: "to compete"}, {zh: "冲突", py: "chōngtū", en: "conflict"}, {zh: "解决", py: "jiějué", en: "to resolve"}, {zh: "协商", py: "xiéshāng", en: "to consult"}, {zh: "组织", py: "zǔzhī", en: "to organize/organization"}, {zh: "机构", py: "jīgòu", en: "institution"}, {zh: "政府", py: "zhèngfǔ", en: "government"}, {zh: "国家", py: "guójiā", en: "country"}, {zh: "宗教", py: "zōngjiào", en: "religion"}, {zh: "神话", py: "shénhuà", en: "myth"}, {zh: "传说", py: "chuánshuō", en: "legend"}, {zh: "文学", py: "wénxué", en: "literature"}, {zh: "哲学", py: "zhéxué", en: "philosophy"}, {zh: "思想", py: "sīxiǎng", en: "thought/ideology"}, {zh: "观点", py: "guāndiǎn", en: "viewpoint"}, {zh: "态度", py: "tàidù", en: "attitude"}, {zh: "原则", py: "yuánzé", en: "principle"}, {zh: "规范", py: "guīfàn", en: "norm/standard"}, {zh: "规则", py: "guīzé", en: "rule"}, {zh: "法规", py: "fǎguī", en: "laws and regulations"}, {zh: "纪律", py: "jìlǜ", en: "discipline"}, {zh: "道德", py: "dàodé", en: "morality"}, {zh: "伦理", py: "lúnlǐ", en: "ethics"}, {zh: "社会", py: "shèhuì", en: "society"}, {zh: "公共", py: "gōnggòng", en: "public"}, {zh: "公益", py: "gōngyì", en: "public welfare"}, {zh: "慈善", py: "císhàn", en: "charity"}, {zh: "志愿", py: "zhìyuàn", en: "volunteer"}, {zh: "捐款", py: "juānkuǎn", en: "to donate"}, {zh: "生态", py: "shēngtài", en: "ecology"}, {zh: "动物", py: "dòngwù", en: "animal"}, {zh: "植物", py: "zhíwù", en: "plant"}, {zh: "森林", py: "sēnlín", en: "forest"}, {zh: "沙漠", py: "shāmò", en: "desert"}, {zh: "海洋", py: "hǎiyáng", en: "ocean"}, {zh: "河流", py: "héliú", en: "river"}, {zh: "山脉", py: "shānmài", en: "mountain range"}, {zh: "岛屿", py: "dǎoyǔ", en: "island"}, {zh: "地球", py: "dìqiú", en: "earth"}, {zh: "宇宙", py: "yǔzhòu", en: "universe"}, {zh: "科学", py: "kēxué", en: "science"}, {zh: "技术", py: "jìshù", en: "technology"}, {zh: "发明", py: "fāmíng", en: "to invent"}, {zh: "发现", py: "fāxiàn", en: "to discover"}, {zh: "实验", py: "shíyàn", en: "experiment"}, {zh: "数据", py: "shùjù", en: "data"}, {zh: "统计", py: "tǒngjì", en: "statistics"}, {zh: "调查", py: "diàochá", en: "survey/investigate"}, {zh: "研究", py: "yánjiū", en: "research"}, {zh: "分析", py: "fēnxī", en: "to analyze"}, {zh: "总结", py: "zǒngjié", en: "to summarize"}, {zh: "报告", py: "bàogào", en: "report"}, {zh: "论文", py: "lùnwén", en: "thesis/paper"}, {zh: "学术", py: "xuéshù", en: "academic"}
+    ]},
+    cat5: { name: "Tech & Media", words: [
+      {zh: "网络", py: "wǎngluò", en: "internet, network"}, {zh: "软件", py: "ruǎnjiàn", en: "software"}, {zh: "硬件", py: "yìngjiàn", en: "hardware"}, {zh: "程序", py: "chéngxù", en: "program, procedure"}, {zh: "屏幕", py: "píngmù", en: "screen"}, {zh: "键盘", py: "jiànpán", en: "keyboard"}, {zh: "鼠标", py: "shǔbiāo", en: "mouse (computer)"}, {zh: "摄像头", py: "shèxiàngtóu", en: "webcam, camera"}, {zh: "耳机", py: "ěrjī", en: "headphones"}, {zh: "音箱", py: "yīnxiāng", en: "speaker"}, {zh: "机器人", py: "jīqìrén", en: "robot"}, {zh: "智能", py: "zhìnéng", en: "smart, intelligent"}, {zh: "账号", py: "zhànghào", en: "account"}, {zh: "登录", py: "dēnglù", en: "to log in"}, {zh: "注册", py: "zhùcè", en: "to register"}, {zh: "退出", py: "tuìchū", en: "to log out, exit"}, {zh: "删除", py: "shānchú", en: "to delete"}, {zh: "保存", py: "bǎocún", en: "to save"}, {zh: "复制", py: "fùzhì", en: "to copy"}, {zh: "下载", py: "xiàzài", en: "to download"}, {zh: "上传", py: "shàngchuán", en: "to upload"}, {zh: "更新", py: "gēngxīn", en: "to update"}, {zh: "安装", py: "ānzhuāng", en: "to install"}, {zh: "搜索", py: "sōusuǒ", en: "to search"}, {zh: "浏览", py: "liúlǎn", en: "to browse"}, {zh: "点击", py: "diǎnjī", en: "to click"}, {zh: "链接", py: "liànjiē", en: "link"}, {zh: "网站", py: "wǎngzhàn", en: "website"}, {zh: "电子邮件", py: "diànzǐ yóujiàn", en: "email"}, {zh: "二维码", py: "èrwéimǎ", en: "QR code"}, {zh: "扫描", py: "sǎomiáo", en: "to scan"}, {zh: "视频", py: "shìpín", en: "video"}, {zh: "音频", py: "yīnpín", en: "audio"}, {zh: "直播", py: "zhíbō", en: "live broadcast"}, {zh: "粉丝", py: "fěnsī", en: "fans, followers"}, {zh: "媒体", py: "méitǐ", en: "media"}, {zh: "新闻", py: "xīnwén", en: "news"}, {zh: "记者", py: "jìzhě", en: "journalist"}, {zh: "采访", py: "cǎifǎng", en: "to interview"}, {zh: "报道", py: "bàodào", en: "to report, coverage"}, {zh: "杂志", py: "zázhì", en: "magazine"}, {zh: "报纸", py: "bàozhǐ", en: "newspaper"}, {zh: "广播", py: "guǎngbō", en: "broadcast, radio"}, {zh: "节目", py: "jiémù", en: "program, show"}, {zh: "频道", py: "píndào", en: "channel"}, {zh: "播放", py: "bōfàng", en: "to play, broadcast"}, {zh: "录音", py: "lùyīn", en: "to record audio"}, {zh: "拍照", py: "pāizhào", en: "to take a photo"}, {zh: "相册", py: "xiàngcè", en: "photo album"}, {zh: "分享", py: "fēnxiǎng", en: "to share"}, {zh: "转发", py: "zhuǎnfā", en: "to forward, repost"}, {zh: "评论", py: "pínglùn", en: "to comment, comment"}, {zh: "点赞", py: "diǎnzàn", en: "to like (social media)"}, {zh: "关注", py: "guānzhù", en: "to follow, pay attention to"}, {zh: "消息", py: "xiāoxi", en: "message, news"}, {zh: "通知", py: "tōngzhī", en: "to notify, notice"}, {zh: "提醒", py: "tíxǐng", en: "to remind"}, {zh: "信号", py: "xìnhào", en: "signal"}, {zh: "通讯", py: "tōngxùn", en: "communication"}, {zh: "联系", py: "liánxì", en: "to contact"}, {zh: "沟通", py: "gōutōng", en: "to communicate"}, {zh: "交流", py: "jiāoliú", en: "to exchange, communicate"}, {zh: "表达", py: "biǎodá", en: "to express"}, {zh: "翻译", py: "fānyì", en: "to translate, translation"}, {zh: "语言", py: "yǔyán", en: "language"}, {zh: "符号", py: "fúhào", en: "symbol, sign"}, {zh: "代码", py: "dǎimǎ", en: "code"}, {zh: "数据", py: "shùjù", en: "data"}, {zh: "信息", py: "xìnxī", en: "information"}, {zh: "网页", py: "wǎngyè", en: "webpage"}, {zh: "网友", py: "wǎngyǒu", en: "online friend"}, {zh: "线上", py: "xiànshàng", en: "online"}, {zh: "线下", py: "xiànxià", en: "offline"}, {zh: "流量", py: "liúliàng", en: "data traffic, mobile data"}, {zh: "宽带", py: "kuāndài", en: "broadband"}, {zh: "蓝牙", py: "lányá", en: "Bluetooth"}, {zh: "充电", py: "chōngdiàn", en: "to charge (battery)"}, {zh: "人工智能", py: "réngōng zhìnéng", en: "artificial intelligence"}, {zh: "虚拟现实", py: "xūnǐ xiànshí", en: "virtual reality"}
+    ]},
+    cat6: { name: "Travel & Transport", words: [
+      {zh: "飞机", py: "fēijī", en: "airplane"}, {zh: "火车", py: "huǒchē", en: "train"}, {zh: "高铁", py: "gāotiě", en: "high-speed rail"}, {zh: "地铁", py: "dìtiě", en: "subway"}, {zh: "公交车", py: "gōngjiāochē", en: "bus"}, {zh: "出租车", py: "chūzūchē", en: "taxi"}, {zh: "自行车", py: "zìxíngchē", en: "bicycle"}, {zh: "共享单车", py: "gòngxiǎng dānchē", en: "shared bike"}, {zh: "轮船", py: "lúnchuán", en: "ship"}, {zh: "航班", py: "hángbān", en: "flight"}, {zh: "车次", py: "cīchē", en: "train number"}, {zh: "长途汽车", py: "chángtú qìchē", en: "long-distance bus"}, {zh: "旅游", py: "lǚyóu", en: "to travel, tourism"}, {zh: "旅行", py: "lǚxíng", en: "travel, trip"}, {zh: "景点", py: "jǐngdiǎn", en: "scenic spot"}, {zh: "景区", py: "jǐngqū", en: "scenic area"}, {zh: "导游", py: "dǎoyóu", en: "tour guide"}, {zh: "护照", py: "hùzhào", en: "passport"}, {zh: "签证", py: "qiānzhèng", en: "visa"}, {zh: "行李", py: "xíngli", en: "luggage"}, {zh: "纪念品", py: "jìniànpǐn", en: "souvenir"}, {zh: "门票", py: "ménpiào", en: "entrance ticket"}, {zh: "酒店", py: "jiǔdiàn", en: "hotel"}, {zh: "民宿", py: "mínsù", en: "homestay, B&B"}, {zh: "退房", py: "tuìfáng", en: "to check out"}, {zh: "入住", py: "rùzhù", en: "to check in"}, {zh: "预订", py: "yùdìng", en: "to book, reserve"}, {zh: "地图", py: "dìtú", en: "map"}, {zh: "方向", py: "fāngxiàng", en: "direction"}, {zh: "距离", py: "jùlí", en: "distance"}, {zh: "拐弯", py: "guǎiwān", en: "to turn"}, {zh: "十字路口", py: "shízì lùkǒu", en: "intersection"}, {zh: "红绿灯", py: "hónglǜdēng", en: "traffic light"}, {zh: "路标", py: "lùbiāo", en: "road sign"}, {zh: "目的地", py: "mùdìdì", en: "destination"}, {zh: "路线", py: "lùxiàn", en: "route"}, {zh: "左右", py: "zuǒyòu", en: "left and right"}, {zh: "前后", py: "qiánhòu", en: "front and back"}, {zh: "附近", py: "fùjìn", en: "nearby"}, {zh: "对面", py: "duìmiàn", en: "opposite side"}, {zh: "堵车", py: "dǔchē", en: "traffic jam"}, {zh: "迟到", py: "chídào", en: "to be late"}, {zh: "准时", py: "zhǔnshí", en: "on time, punctual"}, {zh: "换乘", py: "huànchéng", en: "to transfer"}, {zh: "安检", py: "ānjiǎn", en: "security check"}, {zh: "海关", py: "hǎiguān", en: "customs"}, {zh: "候机楼", py: "hòujīlóu", en: "airport terminal"}, {zh: "登机牌", py: "dēngjīpái", en: "boarding pass"}, {zh: "站台", py: "zhàntái", en: "platform"}, {zh: "售票处", py: "shòupiàochù", en: "ticket office"}, {zh: "单程", py: "dānchéng", en: "one-way"}, {zh: "往返", py: "wǎngfǎn", en: "round trip"}, {zh: "座位", py: "zuòwèi", en: "seat"}, {zh: "靠窗", py: "kàochuāng", en: "window seat"}, {zh: "过道", py: "guòdào", en: "aisle"}, {zh: "安全带", py: "ānquándài", en: "seatbelt"}, {zh: "超速", py: "chāosù", en: "to speed"}, {zh: "违章", py: "wéizhāng", en: "to violate rules"}, {zh: "罚款", py: "fákuǎn", en: "fine (penalty)"}, {zh: "加油站", py: "jiāyóuzhàn", en: "gas station"}, {zh: "停车场", py: "tíngchēchǎng", en: "parking lot"}, {zh: "收费站", py: "shòufèizhàn", en: "toll station"}, {zh: "高速公路", py: "gāosù gōnglù", en: "highway"}, {zh: "斑马线", py: "bāmǎxiàn", en: "zebra crossing"}, {zh: "登机", py: "dēngjī", en: "to board a plane"}, {zh: "托运", py: "tuōyùn", en: "to check luggage"}, {zh: "经济舱", py: "jīngjìcāng", en: "economy class"}, {zh: "商务舱", py: "shāngwùcāng", en: "business class"}, {zh: "头等舱", py: "tóuděngcāng", en: "first class"}, {zh: "延误", py: "yánwù", en: "delay"}, {zh: "取消", py: "qǔxiāo", en: "to cancel"}, {zh: "导航", py: "dǎoháng", en: "to navigate"}, {zh: "里程", py: "lǐchéng", en: "mileage"}, {zh: "乘客", py: "chéngkè", en: "passenger"}, {zh: "司机", py: "sījī", en: "driver"}
+    ]},
+    cat7: { name: "Logic & Abstract", words: [
+      {zh: "因为", py: "yīnwèi", en: "because"}, {zh: "所以", py: "suǒyǐ", en: "so, therefore"}, {zh: "虽然", py: "suīrán", en: "although"}, {zh: "但是", py: "dànshì", en: "but, however"}, {zh: "如果", py: "rúguǒ", en: "if"}, {zh: "那么", py: "nàme", en: "then, in that case"}, {zh: "即使", py: "jíshǐ", en: "even if"}, {zh: "无论", py: "wúlùn", en: "no matter"}, {zh: "不仅", py: "bùjǐn", en: "not only"}, {zh: "而且", py: "érqiě", en: "but also, moreover"}, {zh: "既然", py: "jìrán", en: "since, now that"}, {zh: "只要", py: "zhǐyào", en: "as long as"}, {zh: "只有", py: "zhǐyǒu", en: "only if"}, {zh: "除非", py: "chúfēi", en: "unless"}, {zh: "不管", py: "bùguǎn", en: "regardless of"}, {zh: "总之", py: "zǒngzhī", en: "in short, anyway"}, {zh: "否则", py: "fǒuzé", en: "otherwise"}, {zh: "与其", py: "yǔqí", en: "rather than"}, {zh: "不如", py: "bùrú", en: "better to"}, {zh: "宁可", py: "nìngkě", en: "would rather"}, {zh: "哪怕", py: "nǎpà", en: "even though"}, {zh: "大概", py: "dàgài", en: "probably, roughly"}, {zh: "几乎", py: "jīhū", en: "almost, nearly"}, {zh: "究竟", py: "jiūjìng", en: "after all, exactly"}, {zh: "毕竟", py: "bìjìng", en: "after all"}, {zh: "其实", py: "qíshí", en: "actually, in fact"}, {zh: "显然", py: "xiǎnrán", en: "obviously"}, {zh: "当然", py: "dāngrán", en: "of course"}, {zh: "果然", py: "guǒrán", en: "as expected"}, {zh: "居然", py: "jūrán", en: "unexpectedly"}, {zh: "竟然", py: "jìngrán", en: "unexpectedly, to one's surprise"}, {zh: "反而", py: "fǎn'ér", en: "on the contrary, instead"}, {zh: "另外", py: "lìngwài", en: "in addition, besides"}, {zh: "此外", py: "cǐwài", en: "in addition"}, {zh: "一方面", py: "yī fāngmiàn", en: "on the one hand"}, {zh: "另一方面", py: "lìng yī fāngmiàn", en: "on the other hand"}, {zh: "首先", py: "shǒuxiān", en: "first of all"}, {zh: "其次", py: "qícì", en: "secondly"}, {zh: "最后", py: "zuìhòu", en: "finally"}, {zh: "然后", py: "ránhòu", en: "then, after that"}, {zh: "接着", py: "jiēzhe", en: "then, following"}, {zh: "于是", py: "yúshì", en: "thereupon, as a result"}, {zh: "因此", py: "yīncǐ", en: "therefore"}, {zh: "从而", py: "cóng'ér", en: "thus, thereby"}, {zh: "机会", py: "jīhuì", en: "opportunity, chance"}, {zh: "条件", py: "tiáojiàn", en: "condition, requirement"}, {zh: "环境", py: "huánjìng", en: "environment, surroundings"}, {zh: "情况", py: "qíngkuàng", en: "situation, condition"}, {zh: "问题", py: "wèntí", en: "question, problem"}, {zh: "方法", py: "fāngfǎ", en: "method, way"}, {zh: "办法", py: "bànfǎ", en: "way, means"}, {zh: "目的", py: "mùdì", en: "purpose, goal"}, {zh: "目标", py: "mùbiāo", en: "target, objective"}, {zh: "意义", py: "yìyì", en: "meaning, significance"}, {zh: "价值", py: "jiàzhí", en: "value, worth"}, {zh: "影响", py: "yǐngxiǎng", en: "influence, effect"}, {zh: "作用", py: "zuòyòng", en: "function, role, effect"}, {zh: "关系", py: "guānxì", en: "relationship, connection"}, {zh: "矛盾", py: "máodùn", en: "contradiction, conflict"}, {zh: "现象", py: "xiànxiàng", en: "phenomenon"}, {zh: "本质", py: "běnzhì", en: "essence, nature"}, {zh: "规律", py: "guīlǜ", en: "law, rule, pattern"}, {zh: "概念", py: "gàiniàn", en: "concept, idea"}, {zh: "理论", py: "lǐlùn", en: "theory"}, {zh: "观念", py: "guānniàn", en: "concept, notion"}, {zh: "意识", py: "yìshí", en: "consciousness, awareness"}, {zh: "精神", py: "jīngshén", en: "spirit, mind"}, {zh: "物质", py: "wùzhì", en: "matter, material"}, {zh: "现实", py: "xiànshí", en: "reality, actual"}, {zh: "理想", py: "lǐxiǎng", en: "ideal, dream"}, {zh: "梦想", py: "mèngxiǎng", en: "dream"}, {zh: "希望", py: "xīwàng", en: "hope, wish"}, {zh: "期望", py: "qīwàng", en: "expectation, hope"}, {zh: "教训", py: "jiàoxùn", en: "lesson, moral"}, {zh: "学问", py: "xuéwen", en: "learning, knowledge"}, {zh: "现代", py: "xiàndài", en: "modern, contemporary"}, {zh: "未来", py: "wèilái", en: "future"}, {zh: "过去", py: "guòqù", en: "past, previous"}, {zh: "现在", py: "xiànzài", en: "now, present"}, {zh: "时间", py: "shíjiān", en: "time, period"}, {zh: "空间", py: "kōngjiān", en: "space, room"}, {zh: "世界", py: "shìjiè", en: "world"}, {zh: "人类", py: "rénlèi", en: "humanity, mankind"}, {zh: "个人", py: "gèrén", en: "individual, personal"}, {zh: "集体", py: "jítǐ", en: "collective, group"}, {zh: "认为", py: "rènwéi", en: "to think, to consider"}, {zh: "觉得", py: "juéde", en: "to feel, to think"}, {zh: "证明", py: "zhèngmíng", en: "to prove, proof"}, {zh: "说明", py: "shuōmíng", en: "to explain, to show"}, {zh: "表示", py: "biǎoshì", en: "to express, to indicate"}, {zh: "意味着", py: "yìwèizhe", en: "to mean, to signify"}, {zh: "导致", py: "dǎozhì", en: "to lead to, to cause"}, {zh: "引起", py: "yǐnqǐ", en: "to cause, to arise"}, {zh: "产生", py: "chǎnshēng", en: "to produce, to arise"}, {zh: "形成", py: "xíngchéng", en: "to form, to shape"}, {zh: "建立", py: "jiànlì", en: "to establish, to build"}, {zh: "变化", py: "biànhuà", en: "to change, change"}, {zh: "提高", py: "tígāo", en: "to improve, to raise"}, {zh: "降低", py: "jiàngdī", en: "to reduce, to lower"}, {zh: "增加", py: "zēngjiā", en: "to increase, to add"}
+    ]},
+    cat8: { name: "Actions & Changes", words: [
+      {zh: "搬", py: "bān", en: "to move (household)"}, {zh: "保持", py: "bǎochí", en: "to keep, maintain"}, {zh: "抱", py: "bào", en: "to hug, hold"}, {zh: "抱怨", py: "bàoyuàn", en: "to complain"}, {zh: "背", py: "bēi", en: "to carry on back"}, {zh: "比较", py: "bǐjiào", en: "to compare"}, {zh: "避免", py: "bìmiǎn", en: "to avoid"}, {zh: "编辑", py: "biānjí", en: "to edit"}, {zh: "表演", py: "biǎoyǎn", en: "to perform"}, {zh: "补充", py: "bǔchōng", en: "to supplement"}, {zh: "不得不", py: "bùdébù", en: "have to"}, {zh: "步骤", py: "bùzhòu", en: "step, procedure"}, {zh: "财产", py: "cáichǎn", en: "property, wealth"}, {zh: "参考", py: "cānkǎo", en: "to refer to"}, {zh: "参与", py: "cānyù", en: "to participate"}, {zh: "操作", py: "cāozuò", en: "to operate"}, {zh: "差距", py: "chājù", en: "gap, difference"}, {zh: "拆", py: "chāi", en: "to tear, dismantle"}, {zh: "产品", py: "chǎnpǐn", en: "product"}, {zh: "尝试", py: "chángshì", en: "to try, attempt"}, {zh: "场合", py: "chǎnghé", en: "occasion, situation"}, {zh: "吵架", py: "chǎojià", en: "to quarrel"}, {zh: "抄", py: "chāo", en: "to copy, plagiarize"}, {zh: "朝", py: "cháo", en: "to face, towards"}, {zh: "嘲笑", py: "cháoxiào", en: "to mock, laugh at"}, {zh: "潮湿", py: "cháoshī", en: "damp, humid"}, {zh: "称呼", py: "chēnghū", en: "to call, address"}, {zh: "称赞", py: "chēngzàn", en: "to praise, commend"}, {zh: "成分", py: "chéngfèn", en: "ingredient, component"}, {zh: "成就", py: "chéngjiù", en: "achievement, success"}, {zh: "成立", py: "chénglì", en: "to establish, found"}, {zh: "成熟", py: "chéngshú", en: "mature, ripe"}, {zh: "成长", py: "chéngzhǎng", en: "to grow, grow up"}, {zh: "承载", py: "chéngzài", en: "to bear, carry"}, {zh: "程度", py: "chéngdù", en: "degree, extent"}, {zh: "吃亏", py: "chīkuī", en: "to suffer losses"}, {zh: "充分", py: "chōngfèn", en: "full, ample"}, {zh: "充满", py: "chōngmǎn", en: "full of, brimming with"}, {zh: "重复", py: "chóngfù", en: "to repeat"}, {zh: "宠物", py: "chǒngwù", en: "pet"}, {zh: "抽空", py: "chōukòng", en: "to find time"}, {zh: "出发", py: "chūfā", en: "to set off, start"}, {zh: "出版", py: "chūbǎn", en: "to publish"}, {zh: "传递", py: "chuándì", en: "to transmit, deliver"}, {zh: "创造", py: "chuàngzào", en: "to create"}, {zh: "创业", py: "chuàngyè", en: "to start a business"}, {zh: "吹", py: "chuī", en: "to blow"}, {zh: "垂直", py: "chuízhí", en: "vertical"}, {zh: "纯粹", py: "chúncuì", en: "pure, purely"}, {zh: "辞职", py: "cízhí", en: "to resign"}, {zh: "从此", py: "cóngcǐ", en: "from then on"}, {zh: "丛林", py: "cónglín", en: "jungle"}, {zh: "粗糙", py: "cūcāo", en: "rough, coarse"}, {zh: "促进", py: "cùjìn", en: "to promote, boost"}, {zh: "存", py: "cún", en: "to save, deposit"}, {zh: "存在", py: "cúnzài", en: "to exist"}, {zh: "错误", py: "cuòwù", en: "mistake, error"}, {zh: "措施", py: "cuòshī", en: "measure, step"}, {zh: "答应", py: "dāying", en: "to agree, promise"}, {zh: "打交道", py: "dǎ jiāodao", en: "to come into contact with"}, {zh: "打听", py: "dǎting", en: "to ask about, inquire"}, {zh: "大胆", py: "dàdǎn", en: "bold, daring"}, {zh: "大使", py: "dàshǐ", en: "ambassador"}, {zh: "大约", py: "dàyuē", en: "approximately"}, {zh: "大众", py: "dàzhòng", en: "the masses, public"}, {zh: "代替", py: "dàitì", en: "to replace"}, {zh: "代理", py: "dàilǐ", en: "to act as an agent"}, {zh: "贷款", py: "dàikuǎn", en: "loan"}, {zh: "单纯", py: "dānchún", en: "simple, pure"}, {zh: "单调", py: "dāndiào", en: "monotonous, dull"}, {zh: "单独", py: "dāndú", en: "alone, solo"}, {zh: "单元", py: "dānyuán", en: "unit"}, {zh: "耽误", py: "dānwu", en: "to delay, hold up"}, {zh: "胆小", py: "dǎnxiǎo", en: "cowardly, timid"}, {zh: "淡", py: "dàn", en: "light, dilute"}, {zh: "当地", py: "dāngdì", en: "local"}, {zh: "当前", py: "dāngqián", en: "current, present"}, {zh: "当事人", py: "dāngshìrén", en: "person involved"}, {zh: "档案", py: "dàng'àn", en: "file, archive"}, {zh: "挡", py: "dǎng", en: "to block, hinder"}, {zh: "岛", py: "dǎo", en: "island"}, {zh: "倒闭", py: "dǎobì", en: "to go bankrupt"}, {zh: "导致", py: "dǎozhì", en: "to lead to, cause"}, {zh: "到达", py: "dàodá", en: "to arrive, reach"}, {zh: "道德", py: "dàodé", en: "morality, ethics"}, {zh: "道理", py: "dàolǐ", en: "reason, truth"}, {zh: "登记", py: "dēngjì", en: "to register"}, {zh: "等待", py: "děngdài", en: "to wait"}, {zh: "等于", py: "děngyú", en: "to equal"}, {zh: "滴", py: "dī", en: "to drip, drop"}, {zh: "敌人", py: "dírén", en: "enemy"}, {zh: "地道", py: "dìdao", en: "authentic, genuine"}, {zh: "地理", py: "dìlǐ", en: "geography"}, {zh: "地区", py: "dìqū", en: "area, region"}, {zh: "地位", py: "dìwèi", en: "position, status"}, {zh: "地形", py: "dìxíng", en: "terrain, topography"}, {zh: "地质", py: "dìzhì", en: "geology"}, {zh: "递给", py: "dìgěi", en: "to hand to"}, {zh: "地震", py: "dìzhèn", en: "earthquake"}, {zh: "地址", py: "dìzhǐ", en: "address"}, {zh: "典型", py: "diǎnxíng", en: "typical, model"}, {zh: "典礼", py: "diǎnlǐ", en: "ceremony"}, {zh: "点心", py: "diǎnxin", en: "dim sum, snack"}, {zh: "点菜", py: "diǎncài", en: "to order food"}, {zh: "点头", py: "diǎntóu", en: "to nod"}, {zh: "电脑", py: "diànnǎo", en: "computer"}, {zh: "电视", py: "diànshì", en: "TV"}, {zh: "电影", py: "diànyǐng", en: "movie"}, {zh: "调整", py: "tiáozhěng", en: "to adjust"}, {zh: "丢", py: "diū", en: "to lose, throw"}, {zh: "丢人", py: "diūrén", en: "to lose face"}, {zh: "顶", py: "dǐng", en: "top, to carry on head"}, {zh: "顶多", py: "dǐngduō", en: "at most"}, {zh: "顶级", py: "dǐngjí", en: "top-level"}, {zh: "定期", py: "dìngqī", en: "regular, periodic"}, {zh: "定义", py: "dìngyì", en: "definition"}
+    ]}
+  };
+
+  let currentCategory = null;
+  let pendingCategory = null;
+  let currentPlayerName = "Viskera";
+  let currentQuestions = [];
+  let currentQuestionIndex = 0;
+  let score = 0;
+  let timerInterval;
+  let timeLeft = 0;
+
+  function getTimeLimit(catKey) {
+    return quizData[catKey].words.length >= 100 ? 15 * 60 : 10 * 60;
+  }
+
+  function showScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+    if (screenId === 'menu-screen') renderMenu();
+  }
+
+  function renderMenu() {
+    const grid = document.getElementById('menu-grid');
+    grid.innerHTML = '';
+    for (const [key, cat] of Object.entries(quizData)) {
+      if (cat.words.length > 1) {
+        const div = document.createElement('div');
+        div.className = 'menu-btn';
+        div.innerHTML = `<h3>${cat.name}</h3><span>${cat.words.length} words</span>`;
+        div.onclick = () => startQuiz(key);
+        grid.appendChild(div);
+      }
+    }
+  }
+
+  function startQuiz(catKey) {
+    pendingCategory = catKey;
+    document.getElementById('player-name-input').value = currentPlayerName;
+    showScreen('name-screen');
+    setTimeout(() => {
+      document.getElementById('player-name-input').focus();
+    }, 300);
+  }
+
+  function confirmNameAndStart() {
+    const inputName = document.getElementById('player-name-input').value.trim();
+    currentPlayerName = inputName || "Anonymous";
+    document.getElementById('player-name-input').blur();
+    beginQuiz(pendingCategory);
+  }
+
+  function beginQuiz(catKey) {
+    currentCategory = catKey;
+    currentQuestions = shuffleArray([...quizData[catKey].words]);
+    currentQuestionIndex = 0;
+    score = 0;
+    timeLeft = getTimeLimit(catKey);
+    showScreen('quiz-screen');
+    startTimer();
+    loadQuestion();
+  }
+
+  function loadQuestion() {
+    if (currentQuestionIndex >= currentQuestions.length || timeLeft <= 0) {
+      endQuiz();
+      return;
+    }
+    const q = currentQuestions[currentQuestionIndex];
+    const cardInner = document.getElementById('card-inner');
+    const frontFace = document.getElementById('card-front');
+    cardInner.classList.remove('flipped');
+    frontFace.classList.remove('correct', 'wrong');
+    document.getElementById('q-hanzi').textContent = q.zh;
+    document.getElementById('q-pinyin').textContent = q.py;
+    document.getElementById('q-english').textContent = q.en;
+    toggleHint('pinyin');
+    toggleHint('english');
+
+    document.getElementById('progress-display').textContent = `Q: ${currentQuestionIndex + 1} / ${currentQuestions.length}`;
+    document.getElementById('score-display').textContent = `Score: ${score}`;
+
+    const options = getOptions(q, quizData[currentCategory].words);
+    const container = document.getElementById('options-container');
+    container.innerHTML = '';
+    options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = opt.en;
+      btn.onclick = () => checkAnswer(btn, opt.en === q.en);
+      container.appendChild(btn);
+    });
+  }
+
+  function checkAnswer(btn, isCorrect) {
+    const buttons = document.querySelectorAll('.option-btn');
+    buttons.forEach(b => b.disabled = true);
+    const frontFace = document.getElementById('card-front');
+    const cardInner = document.getElementById('card-inner');
+    if (isCorrect) {
+      btn.classList.add('correct');
+      frontFace.classList.add('correct');
+      score++;
+    } else {
+      btn.classList.add('wrong');
+      frontFace.classList.add('wrong');
+      buttons.forEach(b => {
+        if (b.textContent === currentQuestions[currentQuestionIndex].en) b.classList.add('correct');
+      });
+    }
+    setTimeout(() => { cardInner.classList.add('flipped'); }, 600);
+    setTimeout(() => { currentQuestionIndex++; loadQuestion(); }, 2400);
+  }
+
+  function endQuiz(isQuit = false) {
+    clearInterval(timerInterval);
+    const timeTaken = getTimeLimit(currentCategory) - timeLeft;
+
+    if (!isQuit && currentCategory) {
+      saveScore(currentCategory, currentPlayerName, score, currentQuestions.length, timeTaken);
+    }
+
+    document.getElementById('final-score').textContent = score;
+    const missed = currentQuestions.length - score;
+
+    document.getElementById('review-stats').innerHTML = `
+      <div style="margin-bottom: 8px;"><span style="color: var(--success); font-weight: bold;">Correct:</span> ${score}</div>
+      <div style="margin-bottom: 8px;"><span style="color: var(--error); font-weight: bold;">Missed:</span> ${missed}</div>
+      <div><span style="color: var(--primary); font-weight: bold;">Time Taken:</span> ${formatTime(timeTaken)}</div>
+    `;
+
+    renderLeaderboard(currentCategory);
+    showScreen('result-screen');
+  }
+
+  function quitQuiz() {
+    clearInterval(timerInterval);
+    showScreen('menu-screen');
+  }
+
+  function togglePause() {
+    const pauseScreen = document.getElementById('pause-screen');
+    if (pauseScreen.classList.contains('active')) {
+      pauseScreen.classList.remove('active');
+      document.getElementById('quiz-screen').classList.add('active');
+      startTimer();
+    } else {
+      clearInterval(timerInterval);
+      document.getElementById('quiz-screen').classList.remove('active');
+      pauseScreen.classList.add('active');
+    }
+  }
+
+  function toggleHint(type) {
+    const isChecked = document.getElementById(`toggle-${type}`).checked;
+    const el = document.getElementById(`q-${type}`);
+    el.style.display = isChecked ? 'block' : 'none';
+  }
+
+  function toggleExamFont() {
+    const isChecked = document.getElementById('toggle-exam-font').checked;
+    const hanziEl = document.getElementById('q-hanzi');
+    if (isChecked) {
+      hanziEl.classList.add('exam-font');
+    } else {
+      hanziEl.classList.remove('exam-font');
+    }
+    localStorage.setItem('hsk4_exam_font', isChecked);
+  }
+
+  function startTimer() {
+    clearInterval(timerInterval);
+    updateTimerDisplay();
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      updateTimerDisplay();
+      if (timeLeft <= 0) {
+        endQuiz();
+      }
+    }, 1000);
+  }
+
+  function updateTimerDisplay() {
+    const timerEl = document.getElementById('timer');
+    timerEl.textContent = formatTime(timeLeft);
+    timerEl.classList.remove('warning', 'danger');
+    if (timeLeft <= 30) timerEl.classList.add('danger');
+    else if (timeLeft <= 60) timerEl.classList.add('warning');
+  }
+
+  function formatTime(sec) {
+    if (sec < 0) sec = 0;
+    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function getOptions(correctWord, pool) {
+    let options = [correctWord];
+    let distractors = pool.filter(w => w.zh !== correctWord.zh);
+    distractors = shuffleArray(distractors).slice(0, 3);
+    options = shuffleArray([...options, ...distractors]);
+    return options;
+  }
+
+  function saveScore(catKey, name, score, total, timeTaken) {
+    const key = `hsk4_leaderboard_${catKey}`;
+    let scores = JSON.parse(localStorage.getItem(key) || '[]');
+    scores.push({ name, score, total, timeTaken, date: new Date().toLocaleDateString() });
+
+    scores.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.timeTaken - b.timeTaken;
+    });
+
+    scores = scores.slice(0, 5);
+    localStorage.setItem(key, JSON.stringify(scores));
+  }
+
+  function getLeaderboard(catKey) {
+    const key = `hsk4_leaderboard_${catKey}`;
+    return JSON.parse(localStorage.getItem(key) || '[]');
+  }
+
+  function renderLeaderboard(catKey) {
+    const scores = getLeaderboard(catKey);
+    const list = document.getElementById('leaderboard-list');
+    list.innerHTML = '';
+
+    if (scores.length === 0) {
+      list.innerHTML = '<div style="text-align:center; color: var(--text-dim); padding: 15px;">No scores yet. Play to set a record!</div>';
+      return;
+    }
+
+    let html = '<table class="leaderboard-table"><thead><tr><th>Rank</th><th>Name</th><th>Score</th><th>Time</th></tr></thead><tbody>';
+    scores.forEach((entry, index) => {
+      const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
+      html += `<tr>
+        <td class="${rankClass}">#${index + 1}</td>
+        <td style="font-weight: bold;">${entry.name || 'Anonymous'}</td>
+        <td>${entry.score}/${entry.total}</td>
+        <td style="color: var(--text-dim);">${formatTime(entry.timeTaken)}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    list.innerHTML = html;
+  }
+
+  // Initialize app
+  renderMenu();
+
+  // Restore Exam Font Preference
+  const savedFontPref = localStorage.getItem('hsk4_exam_font') === 'true';
+  document.getElementById('toggle-exam-font').checked = savedFontPref;
+  toggleExamFont();
+
+  // Prevent iOS bounce/overscroll on the whole page
+  document.body.addEventListener('touchmove', function(e) {
+    if (e.target.tagName !== 'INPUT' && !e.target.closest('.screen')?.style?.overflowY) {
+      // Allow scrolling inside active screens
+    }
+  }, { passive: true });
+
+</script>
+</body>
+</html>
