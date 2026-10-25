@@ -862,5 +862,65 @@
   }, { passive: true });
 
 </script>
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+  import { getDatabase, ref, push, get } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+  const SITE_ID = "hsk-quiz";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAwq-xZ9eI8JS6DLGxQ3jGQa_-T1P_LquI",
+    authDomain: "hsk-leaderboards.firebaseapp.com",
+    projectId: "hsk-leaderboards",
+    storageBucket: "hsk-leaderboards.firebasestorage.app",
+    messagingSenderId: "133154223109",
+    appId: "1:133154223109:web:891ab19e979d61bd58186c"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const localSaveScore = window.saveScore;
+  const localRender = window.renderLeaderboard;
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  window.saveScore = async function (catKey, name, score, total, timeTaken) {
+    try {
+      await push(ref(db, "boards/" + SITE_ID + "_" + catKey + "/scores"), {
+        name, score, total, timeTaken, date: new Date().toLocaleDateString()
+      });
+    } catch (e) { console.error("Upload failed, saving locally:", e); localSaveScore(catKey, name, score, total, timeTaken); }
+    window.renderLeaderboard(catKey);
+  };
+
+  window.renderLeaderboard = async function (catKey) {
+    const list = document.getElementById("leaderboard-list");
+    if (!list) return; // Safety check in case the element doesn't exist on the page
+    list.innerHTML = '<div style="text-align:center; color: var(--text-dim); padding: 15px;">Loading global leaderboard…</div>';
+    try {
+      const snap = await get(ref(db, "boards/" + SITE_ID + "_" + catKey + "/scores"));
+      let entries = [];
+      if (snap.exists()) snap.forEach(child => entries.push(child.val()));
+      entries.sort((a, b) => (b.score - a.score) || (a.timeTaken - b.timeTaken));
+      entries = entries.slice(0, 5);
+      if (entries.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color: var(--text-dim); padding: 15px;">No scores yet. Be the first on the global board!</div>';
+        return;
+      }
+      let html = '<table class="leaderboard-table"><thead><tr><th>Rank</th><th>Name</th><th>Score</th><th>Time</th></tr></thead><tbody>';
+      entries.forEach((entry, index) => {
+        const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
+        html += `<tr>
+          <td class="${rankClass}">#${index + 1}</td>
+          <td style="font-weight: bold;">${escapeHtml(entry.name)}</td>
+          <td>${entry.score}/${entry.total}</td>
+          <td style="color: var(--text-dim);">${formatTime(entry.timeTaken)}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      list.innerHTML = html;
+    } catch (e) { console.error("Leaderboard load failed:", e); localRender(catKey); }
+  };
+</script>
 </body>
 </html>
