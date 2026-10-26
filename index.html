@@ -204,6 +204,10 @@
     height: 100%;
     transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+    /* Prevents rare iOS Safari flickering during 3D transforms */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
   }
   .card-inner.flipped {
     transform: rotateY(180deg);
@@ -533,9 +537,27 @@
       </div>
     </div>
     <div class="toggles">
-      <div class="toggle-group"><span>Pinyin</span><label class="switch"><input type="checkbox" id="toggle-pinyin" checked onchange="toggleHint('pinyin')"><span class="slider"></span></label></div>
-      <div class="toggle-group"><span>English</span><label class="switch"><input type="checkbox" id="toggle-english" checked onchange="toggleHint('english')"><span class="slider"></span></label></div>
-      <div class="toggle-group"><span>Exam Font</span><label class="switch"><input type="checkbox" id="toggle-exam-font" onchange="toggleExamFont()"><span class="slider"></span></label></div>
+      <div class="toggle-group">
+        <span>Pinyin</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-pinyin" checked onchange="toggleHint('pinyin')" aria-label="Toggle Pinyin">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="toggle-group">
+        <span>English</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-english" checked onchange="toggleHint('english')" aria-label="Toggle English">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="toggle-group">
+        <span>Exam Font</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-exam-font" onchange="toggleExamFont()" aria-label="Toggle Exam Font">
+          <span class="slider"></span>
+        </label>
+      </div>
     </div>
     <div class="options" id="options-container"></div>
   </div>
@@ -602,8 +624,12 @@
   let timerInterval;
   let timeLeft = 0;
 
+  // UPDATED: Timer logic now grants 20 minutes for categories with > 110 words
   function getTimeLimit(catKey) {
-    return quizData[catKey].words.length >= 100 ? 15 * 60 : 10 * 60;
+    const count = quizData[catKey].words.length;
+    if (count > 110) return 20 * 60; // 20 minutes
+    if (count >= 100) return 15 * 60; // 15 minutes
+    return 10 * 60; // 10 minutes
   }
 
   function showScreen(screenId) {
