@@ -503,6 +503,32 @@
     <h2 style="text-align:center; margin-bottom: 10px;">Select a Category</h2>
     <p style="text-align:center; color:var(--text-dim); margin-bottom: 20px;">Choose a topic to test your knowledge</p>
     <div class="menu-grid" id="menu-grid"></div>
+  </div>  <!-- SCREEN 1: Local Leaderboard -->
+  <div id="local-leaderboard-screen" class="screen" style="text-align: center; padding: 20px 0; justify-content: flex-start; overflow-y: auto;">
+    <h2 id="local-cat-name" style="font-size: 1.5rem; margin-bottom: 5px; color: var(--warning);">Local Leaderboard</h2>
+    <p style="color: var(--text-dim); margin-bottom: 20px;">Your device's top scores for this category.</p>
+    
+    <div style="background: var(--card); padding: 15px; border-radius: 12px; max-width: 450px; margin: 0 auto 25px; text-align: left;">
+      <div id="local-leaderboard-list"></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="showGlobalLeaderboard(pendingCategory)" style="max-width: 400px; margin: 0 auto 15px;">View Global Leaderboard →</button>
+    <button class="btn" onclick="showScreen('menu-screen')" style="max-width: 400px; margin: 0 auto;">Back to Menu</button>
+  </div>
+
+  <!-- SCREEN 2: Global Leaderboard -->
+  <div id="global-leaderboard-screen" class="screen" style="text-align: center; padding: 20px 0; justify-content: flex-start; overflow-y: auto;">
+    <h2 id="global-cat-name" style="font-size: 1.5rem; margin-bottom: 5px; color: var(--primary);">Global Leaderboard</h2>
+    <p style="color: var(--text-dim); margin-bottom: 20px;">Top scores from players worldwide.</p>
+    
+    <div style="background: var(--card); padding: 15px; border-radius: 12px; max-width: 450px; margin: 0 auto 25px; text-align: left;">
+      <div id="global-leaderboard-list">
+        <div style="text-align:center; color: var(--text-dim); padding: 15px;">Loading global scores…</div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="proceedToNameScreen()" style="max-width: 400px; margin: 0 auto 15px;">Challenge the Leaderboard</button>
+    <button class="btn" onclick="showLocalLeaderboard(pendingCategory)" style="max-width: 400px; margin: 0 auto;">← Back to Local Scores</button>
   </div>
 
   <div id="name-screen" class="screen" style="text-align: center; padding-top: 15vh; justify-content: flex-start;">
@@ -646,12 +672,19 @@
         const div = document.createElement('div');
         div.className = 'menu-btn';
         div.innerHTML = `<h3>${cat.name}</h3><span>${cat.words.length} words</span>`;
-        div.onclick = () => startQuiz(key);
+        // Route to the Local Leaderboard screen first
+        div.onclick = () => showLocalLeaderboard(key);
         grid.appendChild(div);
       }
     }
   }
-
+    function proceedToNameScreen() {
+    document.getElementById('player-name-input').value = currentPlayerName;
+    showScreen('name-screen');
+    setTimeout(() => {
+      document.getElementById('player-name-input').focus();
+    }, 300);
+  }
   function startQuiz(catKey) {
     pendingCategory = catKey;
     document.getElementById('player-name-input').value = currentPlayerName;
@@ -947,7 +980,78 @@
           entries.push(child.val());
         });
       }
+        // --- NEW PRE-QUIZ LEADERBOARD FUNCTIONS ---
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function showLocalLeaderboard(catKey) {
+    pendingCategory = catKey;
+    document.getElementById('local-cat-name').textContent = quizData[catKey].name + " (Local)";
+    showScreen('local-leaderboard-screen');
+    
+    const key = `hsk4_leaderboard_${catKey}`;
+    const scores = JSON.parse(localStorage.getItem(key) || '[]');
+    const list = document.getElementById('local-leaderboard-list');
+    
+    if (scores.length === 0) {
+      list.innerHTML = '<div style="text-align:center; color: var(--text-dim); padding: 15px;">No local scores yet.</div>';
+      return;
+    }
+    
+    let html = '<table class="leaderboard-table"><thead><tr><th>Rank</th><th>Name</th><th>Score</th><th>Time</th></tr></thead><tbody>';
+    scores.slice(0, 5).forEach((entry, index) => {
+      const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
+      html += `<tr>
+        <td class="${rankClass}">#${index + 1}</td>
+        <td style="font-weight: bold;">${escapeHtml(entry.name || 'Anonymous')}</td>
+        <td>${entry.score}/${entry.total}</td>
+        <td style="color: var(--text-dim);">${formatTime(entry.timeTaken)}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    list.innerHTML = html;
+  }
+
+  async function showGlobalLeaderboard(catKey) {
+    pendingCategory = catKey;
+    document.getElementById('global-cat-name').textContent = quizData[catKey].name + " (Global)";
+    showScreen('global-leaderboard-screen');
+    
+    const boardPath = "boards/" + SITE_ID + "_" + catKey + "/scores";
+    const list = document.getElementById("global-leaderboard-list");
+    list.innerHTML = '<div style="text-align:center; color: var(--text-dim); padding: 15px;">Loading global scores…</div>';
+    
+    try {
+      const snap = await get(ref(db, boardPath));
+      let entries = [];
+      if (snap.exists()) {
+        snap.forEach(child => entries.push(child.val()));
+      }
       
+      entries.sort((a, b) => (b.score - a.score) || (a.timeTaken - b.timeTaken));
+      entries = entries.slice(0, 5);
+      
+      if (entries.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color: var(--text-dim); padding: 15px;">No global scores yet. Be the first!</div>';
+        return;
+      }
+      
+      let html = '<table class="leaderboard-table"><thead><tr><th>Rank</th><th>Name</th><th>Score</th><th>Time</th></tr></thead><tbody>';
+      entries.forEach((entry, index) => {
+        const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
+        html += `<tr>
+          <td class="${rankClass}">#${index + 1}</td>
+          <td style="font-weight: bold;">${escapeHtml(entry.name)}</td>
+          <td>${entry.score}/${entry.total}</td>
+          <td style="color: var(--text-dim);">${formatTime(entry.timeTaken)}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      list.innerHTML = html;
+    } catch (e) {
+      console.error("Global load failed:", e);
+      list.innerHTML = '<div style="text-align:center; color: var(--error); padding: 15px;">Failed to load global scores.</div>';
+    }
+  }
       entries.sort((a, b) => (b.score - a.score) || (a.timeTaken - b.timeTaken));
       entries = entries.slice(0, 5);
       
